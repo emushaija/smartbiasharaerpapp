@@ -1,88 +1,136 @@
-import 'package:flutter/material.dart';
+// ignore_for_file: deprecated_member_use
 
-class DashboardPage extends StatelessWidget {
+import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import '../../providers/payment_requests_provider.dart'; // Import the provider
+import '../../features/payment_requests/payment_requests_page.dart'; // Import the PaymentRequestsPage
+
+class DashboardPage extends StatefulWidget {
   const DashboardPage({super.key});
 
   @override
+  _DashboardPageState createState() => _DashboardPageState();
+}
+
+class _DashboardPageState extends State<DashboardPage> {
+  final String paymentRequestsUrl = 'https://smartbiasharaerp.joehsolutions.com/applicationsAPI.php';
+
+  @override
+  void initState() {
+    super.initState();
+    // Fetch payment requests once when the page is loaded
+    _fetchPaymentRequests();
+  }
+
+  // Method to trigger data fetch
+  void _fetchPaymentRequests() {
+    final paymentRequestsProvider = Provider.of<PaymentRequestsProvider>(context, listen: false);
+    paymentRequestsProvider.fetchPaymentRequests(paymentRequestsUrl, 'UnauthorisedPaymentRequests');
+  }
+
+  @override
   Widget build(BuildContext context) {
-    return Stack(
-      children: [
-        // Background Image with Opacity
-        Positioned.fill(
-          child: Opacity(
-            opacity: 0.15, // Keep it faint
-            child: Image.asset(
-              'assets/images/accounting_bg.jpg', // Replace with your image
-              fit: BoxFit.cover,
+    return Scaffold(
+      body: Stack(
+        children: [
+          // Background Image with Opacity
+          Positioned.fill(
+            child: Opacity(
+              opacity: 0.15, // Keep it faint
+              child: Image.asset(
+                'assets/images/accounting_bg.jpg', // Replace with your image
+                fit: BoxFit.cover,
+              ),
             ),
           ),
-        ),
 
-        // Gradient Overlay
-        Container(
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              colors: [Colors.blue.shade900, Colors.blue.shade500],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
+          // Gradient Overlay
+          Container(
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: [Colors.blue.shade900, Colors.blue.shade500],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
             ),
           ),
-        ),
 
-        // Content
-        Padding(
-          padding: const EdgeInsets.all(16.0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Stylish Dashboard Header
-              Row(
-                children: [
-                  const Icon(Icons.bar_chart, color: Colors.white, size: 28),
-                  const SizedBox(width: 10),
-                  const Text(
-                    'Dashboard Highlights',
-                    style: TextStyle(
-                      fontSize: 26,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.white,
-                      letterSpacing: 1.2,
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 5),
-              Container(
-                height: 3,
-                width: 180,
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    colors: [Colors.white, Colors.blueAccent],
-                  ),
-                  borderRadius: BorderRadius.circular(2),
-                ),
-              ),
-
-              const SizedBox(height: 20),
-
-              // Responsive Grid Layout
-              Expanded(
-                child: GridView.count(
-                  crossAxisCount: 2, // 2 columns for balance
-                  crossAxisSpacing: 16,
-                  mainAxisSpacing: 16,
+          // Content
+          Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Stylish Dashboard Header
+                Row(
                   children: [
-                    _buildHighlightCard('Total Users', '1,250', Icons.people),
-                    _buildHighlightCard('Pending Requests', '15', Icons.approval),
-                    _buildHighlightCard('Revenue', '\$25,000', Icons.attach_money),
-                    _buildHighlightCard('New Signups', '320', Icons.person_add),
+                    const Icon(Icons.bar_chart, color: Colors.white, size: 28),
+                    const SizedBox(width: 10),
+                    const Text(
+                      'Dashboard Highlights',
+                      style: TextStyle(
+                        fontSize: 26,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white,
+                        letterSpacing: 1.2,
+                      ),
+                    ),
                   ],
                 ),
-              ),
-            ],
+                const SizedBox(height: 5),
+                Container(
+                  height: 3,
+                  width: 180,
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: [Colors.white, Colors.blueAccent],
+                    ),
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+                const SizedBox(height: 20),
+
+                // Responsive Grid Layout
+                Expanded(
+                  child: Consumer<PaymentRequestsProvider>(
+                    builder: (context, paymentRequestsProvider, child) {
+                      final paymentRequestsCount = paymentRequestsProvider.paymentRequests.length;
+                      final isLoading = paymentRequestsProvider.isLoading;
+
+                      return GridView.count(
+                        crossAxisCount: 2, // 2 columns for balance
+                        crossAxisSpacing: 16,
+                        mainAxisSpacing: 16,
+                        children: [
+                          _buildHighlightCard('Total Users', '1,250', Icons.people),
+                          GestureDetector(
+                            onTap: () {
+                              // Navigate to the PaymentRequestsPage
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => const PaymentRequestsPage(),
+                                ),
+                              );
+                            },
+                            child: _buildHighlightCard(
+                              'Pending Requests',
+                              isLoading ? 'Loading...' : 'Total: $paymentRequestsCount',
+                              Icons.approval,
+                            ),
+                          ),
+                          _buildHighlightCard('Revenue', '\$25,000', Icons.attach_money),
+                          _buildHighlightCard('New Signups', '320', Icons.person_add),
+                        ],
+                      );
+                    },
+                  ),
+                ),
+              ],
+            ),
           ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 
@@ -123,9 +171,7 @@ class DashboardPage extends StatelessWidget {
               ),
               child: Icon(icon, size: 50, color: Colors.white),
             ),
-
             const SizedBox(height: 10),
-
             // Value with premium text styling
             Text(
               value,
@@ -136,7 +182,6 @@ class DashboardPage extends StatelessWidget {
                 letterSpacing: 1.2,
               ),
             ),
-
             // Title with better font styling
             Text(
               title,

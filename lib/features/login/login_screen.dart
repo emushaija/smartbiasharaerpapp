@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'login_provider.dart'; // Import the provider to handle login logic
 
 class LoginScreen extends StatefulWidget {
@@ -29,6 +30,21 @@ class _LoginScreenState extends State<LoginScreen> {
           SnackBar(content: Text('Login Successful')),
         );
 
+        //Update data in the storage
+         // Secure Storage Setup
+    final storage = FlutterSecureStorage();
+
+    // Store the PHP session ID securely
+    print('First from login');
+    print(response['PHPSESSID']);
+    storage.write(key: 'phpsessionid', value: response['PHPSESSID']);
+
+    // Optionally, you can verify if the session ID is stored successfully
+    /*
+    storage.read(key: 'phpsessionid').then((value) {
+      print('Stored PHP Session ID: $value');
+    });
+  */
         // Navigate to the Main page (Dashboard) after login
         Navigator.pushReplacementNamed(context, '/dashboard');
       } else {

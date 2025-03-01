@@ -1,10 +1,16 @@
 import 'package:flutter/material.dart';
-import 'features/login/login_screen.dart';
+import 'package:provider/provider.dart';
 import 'routes/app_routes.dart';
+import 'providers/payment_requests_provider.dart';
 //import 'features/home/main_page.dart'; // Import your main page
 
 void main() {
-  runApp(MyApp());
+  runApp(
+    ChangeNotifierProvider(
+      create: (context) => PaymentRequestsProvider(),
+      child: const MyApp(),
+    ),
+  );
 }
 
 class MyApp extends StatelessWidget {
