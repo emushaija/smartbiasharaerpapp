@@ -1,8 +1,6 @@
-import 'dart:convert';
-
 import 'package:flutter/material.dart';
-import 'package:flutter_secure_storage/flutter_secure_storage.dart'; // Import Flutter Secure Storage
-import '../../api/api_service.dart'; // Import the API service
+import 'package:provider/provider.dart';
+import 'package:smartbiasharaerp_app/providers/payment_requests_provider.dart';  // Import provider
 
 class PaymentRequestsPage extends StatefulWidget {
   const PaymentRequestsPage({super.key});
@@ -12,100 +10,111 @@ class PaymentRequestsPage extends StatefulWidget {
 }
 
 class _PaymentRequestsPageState extends State<PaymentRequestsPage> {
-  bool _isLoading = true;
-  List<Map<String, dynamic>> _paymentRequests = [];
-  final String paymentRequestsUrl = 'https://smartbiasharaerp.joehsolutions.com/applicationsAPI.php';
-
-  // Function to fetch payment requests
-  void _fetchPaymentRequests() async {
-    try {
-      // Create an instance of ApiService
-      var apiService = ApiService();
-
-      // Read the PHPSESSIONID from secure storage
-      final storage = FlutterSecureStorage();
-      String? phpSessionId = await storage.read(key: 'phpsessionid');
-
-      if (phpSessionId != null) {
-        // Define headers with session ID
-        final headers = {
-          'Content-Type': 'application/x-www-form-urlencoded',  // Content type for form data
-          'PHPSESSID': phpSessionId,
-        };
-       
-        // Define body with request type
-        /*
-        final body = {
-          'RequestType': 'UnauthorisedPaymentRequests',  // Request body for POST request
-        };
-        */
-        String jsonBody = jsonEncode({
-  'RequestType': 'UnauthorisedPaymentRequests',  // Request body for POST request
-});
-        // Send POST request with PHPSESSIONID in headers
-        final requests = await apiService.postData(
-          paymentRequestsUrl,
-          headers: headers,
-          body: jsonBody,
-        );
-
-        setState(() {
-          _paymentRequests = List<Map<String, dynamic>>.from(requests);
-          _isLoading = false;
-        });
-      } else {
-        // If session ID is not available, show error
-        setState(() {
-          _isLoading = false;
-        });
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('PHP session ID is missing')),
-        );
-      }
-    } catch (e) {
-      setState(() {
-        _isLoading = false;
-      });
-      // Show an error message if fetching fails
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Failed to load payment requests')),
-      );
-    }
-  }
-
   @override
   void initState() {
     super.initState();
-    _fetchPaymentRequests(); // Fetch data when page loads
+    // Fetch payment requests when the page loads
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      // Call the fetch method from the provider
+      Provider.of<PaymentRequestsProvider>(context, listen: false)
+          .fetchPaymentRequests(
+            'https://smartbiasharaerp.joehsolutions.com/applicationsAPI.php',
+            'UnauthorisedPaymentRequests',
+          );
+    });
   }
 
   @override
   Widget build(BuildContext context) {
+    // Use Consumer to listen to the changes in the PaymentRequestsProvider
     return Scaffold(
       appBar: AppBar(
         title: const Text('Payment Requests'),
         backgroundColor: Colors.blue.shade900,
       ),
-      body: _isLoading
-          ? const Center(child: CircularProgressIndicator())  // Show loading indicator
-          : ListView.builder(
-              itemCount: _paymentRequests.length,
+      body: Consumer<PaymentRequestsProvider>(
+        builder: (context, provider, child) {
+          if (provider.isLoading) {
+            // Show loading indicator if the provider is still loading
+            return const Center(child: CircularProgressIndicator());
+          }
+
+          if (provider.paymentRequests.isEmpty) {
+            // Show a message if no payment requests are available
+            return const Center(child: Text('No payment requests available.'));
+          }
+
+          // Using ListView to create a list of cards
+          return Padding(
+            padding: const EdgeInsets.all(8.0),
+            child: ListView.builder(
+              itemCount: provider.paymentRequests.length,
               itemBuilder: (context, index) {
-                final request = _paymentRequests[index];
-                return ListTile(
-                  title: Text('Request ID: ${request['paymentRequestID']}'),
-                  subtitle: Text(
-                    'Amount: ${request['amount']} ${request['currency']}\nRequested By: ${request['requestedBy']}\nDate: ${request['dateOfRequest']}\nRemarks: ${request['remarks']}',
-                    maxLines: 3,
-                    overflow: TextOverflow.ellipsis,
+                final request = provider.paymentRequests[index];
+
+                return Card(
+                  elevation: 5,  // Adding shadow to the card
+                  margin: const EdgeInsets.symmetric(vertical: 8),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(15),  // Rounded corners
                   ),
-                  trailing: const Icon(Icons.arrow_forward),
-                  onTap: () {
-                    // You can navigate to more details if needed
-                  },
+                  child: Padding(
+                    padding: const EdgeInsets.all(12.0),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        // Payment Request ID
+                        Text(
+                          'Request ID: ${request.paymentRequestID}',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.blue.shade900,
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        
+                        // Amount
+                        Row(
+                          children: [
+                            Text(
+                              'Amount: ',
+                              style: TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.w500,
+                                color: Colors.black87,
+                              ),
+                            ),
+                            Text(
+                              '${request.amount.toStringAsFixed(2)}',
+                              style: TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.green.shade700,
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 8),
+
+                        // Date of Request
+                        Text(
+                          'Date: ${request.date.toLocal()}'.split(' ')[0],  // Format date
+                          style: TextStyle(
+                            fontSize: 14,
+                            color: Colors.black87,
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                      ],
+                    ),
+                  ),
                 );
               },
             ),
+          );
+        },
+      ),
     );
   }
 }

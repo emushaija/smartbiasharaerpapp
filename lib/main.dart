@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'routes/app_routes.dart';
 import 'providers/payment_requests_provider.dart';
-//import 'features/home/main_page.dart'; // Import your main page
+
 
 void main() {
   runApp(

@@ -4,12 +4,14 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import '../api/api_service.dart';
 
 // Model for PaymentRequest
-class PaymentRequest {
-  final int paymentRequestID;
+
+  // Factory method to create PaymentRequest from a map (API response)
+  class PaymentRequest {
+  final String paymentRequestID;
   final double amount;
-  final String status;  // Assuming `status` is part of the response
-  final int branchID;   // Assuming `branchID` is part of the response
-  final DateTime date;  // Assuming `date` is part of the response
+  final String status;
+  final String branchID;
+  final DateTime date;
 
   PaymentRequest({
     required this.paymentRequestID,
@@ -21,15 +23,33 @@ class PaymentRequest {
 
   // Factory method to create PaymentRequest from a map (API response)
   factory PaymentRequest.fromMap(Map<String, dynamic> map) {
-    return PaymentRequest(
-      paymentRequestID: map['paymentRequestID'],
-      amount: map['amount'],
-      status: map['status'],
-      branchID: map['branchID'],
-      date: DateTime.parse(map['date']), // Assuming 'date' is in string format
-    );
+    try {
+      return PaymentRequest(
+        paymentRequestID: map['paymentRequestID'] ?? 0, // paymentRequestID is an int
+        amount: map['amount'] is double
+            ? map['amount']
+            : double.tryParse(map['amount'].toString()) ?? 0.0, // Handle amount as a double
+        status: map['status'] ?? '', // status is a string
+        branchID: map['branchID'] ?? 0, // branchID is an int
+        date: DateTime.parse(map['date']), // Parse the date string directly
+      );
+    } catch (e) {
+      print('Error parsing payment request: $e');
+      return PaymentRequest(
+        paymentRequestID: '0',
+        amount: 0.0,
+        status: '',
+        branchID: '0',
+        date: DateTime.now(), // Default to current date if parsing fails
+      );
+    }
   }
 }
+
+
+
+
+
 
 class PaymentRequestsProvider with ChangeNotifier {
   List<PaymentRequest> _paymentRequests = [];
@@ -78,11 +98,11 @@ class PaymentRequestsProvider with ChangeNotifier {
         phpSessionId: phpSessionId!,
       );
 
-      print('Response from server: $data');
+     // print('Response from server: $data');
 
       // Extract the count and resultArray from the response data
       // Extract the count from the response data and parse it as an integer
-_count = int.tryParse(data['paymentRequestInfo']['count'].toString()) ?? 0;  // Default to 0 if parsing fails
+//_count = int.tryParse(data['paymentRequestInfo']['count'].toString()) ?? 0;  // Default to 0 if parsing fails
 
 
       // Extract the resultArray, which contains the list of payment requests
